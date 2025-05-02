@@ -32,7 +32,6 @@
       transform-style: preserve-3d;
     }
 
-    /* Animated background elements */
     .bg-particle {
       position: fixed;
       border-radius: 50%;
@@ -334,14 +333,13 @@
       }
       
       try {
-        // Using rb.gy URL shortener - simple GET request
-        const response = await fetch(`https://rb.gy/api/v1/shorten?url=${encodeURIComponent(longUrl)}`);
-        const data = await response.json();
-        return data.shorturl || longUrl;
+        // Using clck.ru API endpoint
+        const response = await fetch(`https://clck.ru/--?url=${encodeURIComponent(longUrl)}`);
+        const shortUrl = await response.text();
+        return shortUrl || longUrl;
       } catch (error) {
         console.error('Error shortening URL:', error);
-        // Fallback to direct rb.gy URL if API fails
-        return `https://rb.gy/${Math.random().toString(36).substring(2, 8)}`;
+        return longUrl;
       }
     }
     
@@ -353,7 +351,9 @@
       }
       
       const outputDiv = document.getElementById('output');
-      outputDiv.innerHTML = `<p>Generating link...</p>`;
+      outputDiv.innerHTML = `<p>Shortening URL...</p>`;
+      outputDiv.style.opacity = '0';
+      outputDiv.style.transform = 'translateY(20px)';
       
       try {
         const shortUrl = await shortenUrl(url);
@@ -376,27 +376,27 @@
         
         const formattedLink = `${prefix}(${shortUrl})`;
         
-        outputDiv.style.opacity = '0';
-        outputDiv.style.transform = 'translateY(20px)';
-        outputDiv.innerHTML = `
-          <p><strong>Your Discord Hyperlink:</strong></p>
-          <p>${formattedLink}</p>
-          <p><small>Link has been copied to clipboard!</small></p>
-        `;
-        
         setTimeout(() => {
           outputDiv.style.opacity = '1';
           outputDiv.style.transform = 'translateY(0)';
-        }, 50);
+          outputDiv.innerHTML = `
+            <p><strong>Your Discord Hyperlink:</strong></p>
+            <p>${formattedLink}</p>
+            <p><small>Shortened URL: ${shortUrl}</small></p>
+            <p><small>Copied to clipboard!</small></p>
+          `;
+        }, 300);
         
         try {
           await navigator.clipboard.writeText(formattedLink);
         } catch (err) {
-          console.error('Auto-copy failed:', err);
-          outputDiv.innerHTML += `<p><small>Could not copy to clipboard. Please copy manually.</small></p>`;
+          console.error('Failed to copy:', err);
+          outputDiv.innerHTML += `<p><small>Please copy manually</small></p>`;
         }
       } catch (error) {
-        outputDiv.innerHTML = `<p>Error generating link. Please try again.</p>`;
+        outputDiv.innerHTML = `<p>Error generating link</p>`;
+        outputDiv.style.opacity = '1';
+        outputDiv.style.transform = 'translateY(0)';
       }
     }
     
