@@ -333,20 +333,10 @@
       }
       
       try {
-        // Using TinyCC API endpoint
-        // Note: You'll need to replace 'YOUR_API_KEY' and 'YOUR_USERNAME' with your actual TinyCC credentials
-        const apiKey = '7920b6e6-19a9-46b9-ad43-62f7c81d992f';
-        const username = 'walteWASDA12311412';
-        
-        const response = await fetch(`https://tiny.cc/?c=rest_api&m=shorten&version=2.0.3&format=json&longUrl=${encodeURIComponent(longUrl)}&apiKey=${apiKey}&login=${username}`);
-        const data = await response.json();
-        
-        if (data.errorCode === 0 && data.results && data.results.short_url) {
-          return data.results.short_url;
-        } else {
-          console.error('TinyCC API error:', data.errorMessage || 'Unknown error');
-          return longUrl; // Fallback to original URL if shortening fails
-        }
+        // Using clck.ru API endpoint
+        const response = await fetch(`https://clck.ru/--?url=${encodeURIComponent(longUrl)}`);
+        const shortUrl = await response.text();
+        return shortUrl || longUrl;
       } catch (error) {
         console.error('Error shortening URL:', error);
         return longUrl;
