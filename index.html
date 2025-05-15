@@ -328,8 +328,18 @@
     });
     
     async function shortenUrl(longUrl) {
-      if (!longUrl.match(/^https?:\/\//)) {
-        longUrl = 'https://' + longUrl;
+      // Validate URL format
+      try {
+        new URL(longUrl);
+      } catch {
+        if (!longUrl.match(/^https?:\/\//)) {
+          longUrl = 'https://' + longUrl;
+        }
+        try {
+          new URL(longUrl);
+        } catch {
+          throw new Error('Invalid URL format');
+        }
       }
       
       try {
@@ -345,15 +355,21 @@
           })
         });
         
+        const data = await response.json();
+        
         if (!response.ok) {
-          throw new Error('Tiny.cc API request failed');
+          throw new Error(data.error?.message || 'Tiny.cc API request failed');
         }
         
-        const data = await response.json();
-        return data.data.shortUrl || longUrl;
+        if (!data.data?.shortUrl) {
+          throw new Error('No shortened URL returned by Tiny.cc');
+        }
+        
+        console.log('Shortened URL:', data.data.shortUrl);
+        return data.data.shortUrl;
       } catch (error) {
-        console.error('Error shortening URL:', error);
-        return longUrl;
+        console.error('Error shortening URL:', error.message);
+        throw error;
       }
     }
     
@@ -397,18 +413,29 @@
             <p><strong>Your Discord Hyperlink:</strong></p>
             <p>${formattedLink}</p>
             <p><small>Shortened URL: ${shortUrl}</small></p>
-            <p><small>Copied to clipboard!</small></p>
+            <p><small id="copy-status">Attempting to copy to clipboard...</small></p>
           `;
+          
+          // Attempt to copy to clipboard
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(formattedLink)
+              .then(() => {
+                document.getElementById('copy-status').innerText = 'Copied to clipboard!';
+              })
+              .catch((err) => {
+                console.error('Failed to copy:', err);
+                document.getElementById('copy-status').innerHTML = 
+                  'Failed to copy automatically. Please copy manually: <br>' +
+                  `<input type="text" value="${formattedLink}" readonly onclick="this.select()">`;
+              });
+          } else {
+            document.getElementById('copy-status').innerHTML = 
+              'Clipboard API unavailable. Please copy manually: <br>' +
+              `<input type="text" value="${formattedLink}" readonly onclick="this.select()">`;
+          }
         }, 300);
-        
-        try {
-          await navigator.clipboard.writeText(formattedLink);
-        } catch (err) {
-          console.error('Failed to copy:', err);
-          outputDiv.innerHTML += `<p><small>Please copy manually</small></p>`;
-        }
       } catch (error) {
-        outputDiv.innerHTML = `<p>Error generating link</p>`;
+        outputDiv.innerHTML = `<p>Error generating link: ${error.message}</p>`;
         outputDiv.style.opacity = '1';
         outputDiv.style.transform = 'translateY(0)';
       }
