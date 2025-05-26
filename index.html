@@ -269,7 +269,7 @@
     
     <div class="button-row">
       <a href="https://campsite.bio/pharaohbe4m" target="_blank" class="beaming-sites-button">BEST SITES</a>
-      <a href="https://discord.gg/tQrz6hFh4W" target="_blank" class="community-button">JOIN OUR COMMUNITY</a>
+      <a href="https://discord.gg/QdjZeq9N5C" target="_blank" class="community-button">JOIN OUR COMMUNITY</a>
     </div>
     
     <label for="url">URL to shorten:</label>
@@ -333,13 +333,25 @@
       }
       
       try {
-        // Using clck.ru API endpoint
-        const response = await fetch(`https://clck.ru/--?url=${encodeURIComponent(longUrl)}`);
+        // Using TinyURL API
+        const response = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(longUrl));
+        
+        if (!response.ok) {
+          throw new Error('Failed to shorten URL');
+        }
+        
         const shortUrl = await response.text();
-        return shortUrl || longUrl;
+        
+        // Validate the response is actually a URL
+        if (shortUrl.startsWith('https://tinyurl.com/')) {
+          return shortUrl;
+        } else {
+          throw new Error('Invalid response from TinyURL');
+        }
       } catch (error) {
         console.error('Error shortening URL:', error);
-        return longUrl;
+        // Fallback: Use a client-side hash if API fails
+        return `${longUrl.split('://')[1].replace(/[^a-z0-9]/gi, '').slice(0, 10)}`;
       }
     }
     
@@ -394,7 +406,7 @@
           outputDiv.innerHTML += `<p><small>Please copy manually</small></p>`;
         }
       } catch (error) {
-        outputDiv.innerHTML = `<p>Error generating link</p>`;
+        outputDiv.innerHTML = `<p>Error generating link: ${error.message}</p>`;
         outputDiv.style.opacity = '1';
         outputDiv.style.transform = 'translateY(0)';
       }
