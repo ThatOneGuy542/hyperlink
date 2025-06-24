@@ -268,8 +268,8 @@
     <h1>PHARAOH | HYPERLINK</h1>
     
     <div class="button-row">
-      <a href="https://sites-pharaoh.vercel.app" target="_blank" class="beaming-sites-button">BEST SITES</a>
-      <a href="https://discord.gg/YvkK5aZxbH" target="_blank" class="community-button">JOIN OUR COMMUNITY</a>
+      <a href="https://campsite.bio/pharaohbe4m" target="_blank" class="beaming-sites-button">BEST SITES</a>
+      <a href="https://discord.gg/QdjZeq9N5C" target="_blank" class="community-button">JOIN OUR COMMUNITY</a>
     </div>
     
     <label for="url">URL to shorten:</label>
@@ -290,6 +290,7 @@
   </div>
 
   <script>
+    // Create animated background particles
     function createParticles() {
       const particleCount = 20;
       for (let i = 0; i < particleCount; i++) {
@@ -311,46 +312,84 @@
         document.body.appendChild(particle);
       }
     }
-
+    
+    // Mouse movement parallax effect
     document.addEventListener('mousemove', (e) => {
       const container = document.getElementById('container');
       const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
       const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
       container.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
     });
-
+    
+    // Reset position when mouse leaves
     document.addEventListener('mouseleave', () => {
       const container = document.getElementById('container');
       container.style.transform = 'rotateY(0deg) rotateX(0deg)';
     });
-
+    
     async function shortenUrl(longUrl) {
+      if (!longUrl) return longUrl;
+      
+      // Ensure URL has proper protocol
       if (!longUrl.match(/^https?:\/\//)) {
         longUrl = 'https://' + longUrl;
       }
-      const encodedUrl = encodeURIComponent(longUrl);
-      const apiUrl = `https://is.gd/create.php?format=simple&url=${encodedUrl}`;
-      const response = await fetch(apiUrl);
-      const shortUrl = await response.text();
-      return shortUrl.trim();
+      
+      try {
+        // First try with JSON API
+        const jsonResponse = await fetch(`https://is.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`);
+        
+        if (jsonResponse.ok) {
+          const jsonData = await jsonResponse.json();
+          
+          // Check for API errors in JSON response
+          if (jsonData.errorcode) {
+            throw new Error(jsonData.errormessage || 'API error');
+          }
+          
+          if (jsonData.shorturl && jsonData.shorturl.startsWith('http')) {
+            return jsonData.shorturl;
+          }
+        }
+        
+        // If JSON fails, try simple format as fallback
+        const simpleResponse = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
+        
+        if (simpleResponse.ok) {
+          const simpleUrl = await simpleResponse.text();
+          
+          // Validate simple response
+          if (simpleUrl.startsWith('http')) {
+            return simpleUrl;
+          } else if (simpleUrl.startsWith('Error:')) {
+            throw new Error(simpleUrl);
+          }
+        }
+        
+        throw new Error('No valid response from API');
+        
+      } catch (error) {
+        console.error('URL shortening failed:', error);
+        return longUrl; // Return original if shortening fails
+      }
     }
-
+    
     async function generateLink() {
       const url = document.getElementById('url').value.trim();
       if (!url) {
         alert('Please enter a URL');
         return;
       }
-
+      
       const outputDiv = document.getElementById('output');
-      outputDiv.innerHTML = `<p>Shortening URL...</p>`;
+      outputDiv.innerHTML = '<p>Shortening URL...</p>';
       outputDiv.style.opacity = '0';
       outputDiv.style.transform = 'translateY(20px)';
-
+      
       try {
         const shortUrl = await shortenUrl(url);
         const format = document.getElementById('format').value;
-
+        
         let prefix;
         switch(format) {
           case 'profile':
@@ -365,9 +404,9 @@
           default:
             prefix = '[Link]';
         }
-
+        
         const formattedLink = `${prefix}(${shortUrl})`;
-
+        
         setTimeout(() => {
           outputDiv.style.opacity = '1';
           outputDiv.style.transform = 'translateY(0)';
@@ -378,7 +417,7 @@
             <p><small>Copied to clipboard!</small></p>
           `;
         }, 300);
-
+        
         try {
           await navigator.clipboard.writeText(formattedLink);
         } catch (err) {
@@ -386,13 +425,17 @@
           outputDiv.innerHTML += `<p><small>Please copy manually</small></p>`;
         }
       } catch (error) {
-        outputDiv.innerHTML = `<p>Error generating link: ${error.message}</p>`;
+        outputDiv.innerHTML = `<p>Error: ${error.message}</p>`;
         outputDiv.style.opacity = '1';
         outputDiv.style.transform = 'translateY(0)';
       }
     }
-
+    
+    // Initialize everything
     createParticles();
+    
+    // Auto-focus URL input on load
+    document.getElementById('url').focus();
   </script>
 </body>
 </html>
